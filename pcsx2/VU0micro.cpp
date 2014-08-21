@@ -21,6 +21,7 @@
 #include "PrecompiledHeader.h"
 #include "Common.h"
 #include "VUmicro.h"
+#include "VU/VUInterface.h"
 
 #include <cmath>
 
@@ -49,5 +50,5 @@ void __fastcall vu0ExecMicro(u32 addr) {
 
 	if ((s32)addr != -1) VU0.VI[REG_TPC].UL = addr;
 	_vuExecMicroDebug(VU0);
-	CpuVU0->ExecuteBlock(1);
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_0)->ExecuteBlock(1);
 }

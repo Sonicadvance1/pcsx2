@@ -17,8 +17,8 @@
 #include "Common.h"
 
 #include "SPR.h"
-#include "VUmicro.h"
 #include "MTVU.h"
+#include "VU/VUInterface.h"
 
 extern void mfifoGIFtransfer(int);
 
@@ -38,7 +38,7 @@ static void TestClearVUs(u32 madr, u32 qwc, bool isWrite)
 			{
 				DbgCon.Warning("scratch pad clearing vu0");
 			
-				CpuVU0->Clear(madr&0xfff, qwc * 16);
+				VUInterface::GetCurrentProvider(VUInterface::VUCORE_0)->Clear(madr&0xfff, qwc * 16);
 			}
 
 			if(((madr & 0xff0) + (qwc * 16)) > 0x1000 )
@@ -52,7 +52,7 @@ static void TestClearVUs(u32 madr, u32 qwc, bool isWrite)
 			{
 				DbgCon.Warning("scratch pad clearing vu1");
 
-				CpuVU1->Clear(madr&0x3fff, qwc * 16);
+				VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Clear(madr&0x3fff, qwc * 16);
 			}
 		}
 		else if (madr >= 0x11004000 && madr < 0x11008000)

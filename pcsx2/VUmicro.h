@@ -291,10 +291,6 @@ public:
 	void SetCacheReserve( uint reserveInMegs ) const;
 };
 
-extern BaseVUmicroCPU* CpuVU0;
-extern BaseVUmicroCPU* CpuVU1;
-
-
 // VU0
 extern void vu0ResetRegs();
 extern void __fastcall vu0ExecMicro(u32 addr);

@@ -39,13 +39,13 @@ BIOS
 
 #include "IopCommon.h"
 #include "GS.h"
-#include "VUmicro.h"
 #include "MTVU.h"
 
 #include "ps2/HwInternal.h"
 #include "ps2/BiosTools.h"
 
 #include "Utilities/PageFaultSource.h"
+#include "VU/VUInterface.h"
 
 #ifdef ENABLECACHE
 #include "Cache.h"
@@ -447,8 +447,7 @@ static void __fastcall _ext_memWrite128(u32 mem, const mem128_t *value)
 typedef void __fastcall ClearFunc_t( u32 addr, u32 qwc );
 
 template<int vunum> static __fi void ClearVuFunc(u32 addr, u32 size) {
-	if (vunum) CpuVU1->Clear(addr, size);
-	else       CpuVU0->Clear(addr, size);
+	VUInterface::GetCurrentProvider(vunum)->Clear(addr, size);
 }
 
 // VU Micro Memory Reads...

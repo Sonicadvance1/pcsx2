@@ -27,6 +27,8 @@
 
 #include "Utilities/MemsetFast.inl"
 
+#include "VU/VUInterface.h"
+
 
 // --------------------------------------------------------------------------------------
 //  RecompiledCodeReserve  (implementations)
@@ -130,17 +132,7 @@ void SysOutOfMemory_EmergencyResponse(uptr blocksize)
 		Cpu->Reset();
 	}
 
-	if (CpuVU0)
-	{
-		CpuVU0->SetCacheReserve( (CpuVU0->GetCacheReserve() * 2) / 3 );
-		CpuVU0->Reset();
-	}
-
-	if (CpuVU1)
-	{
-		CpuVU1->SetCacheReserve( (CpuVU1->GetCacheReserve() * 2) / 3 );
-		CpuVU1->Reset();
-	}
+	VUInterface::EmergencyResponse();
 
 	if (psxCpu)
 	{
@@ -264,84 +256,6 @@ void SysLogMachineCaps()
 	Console.Newline();
 }
 
-template< typename CpuType >
-class CpuInitializer
-{
-public:
-	ScopedPtr<CpuType>			MyCpu;
-	ScopedExcept	ExThrown;
-	
-	CpuInitializer();
-	virtual ~CpuInitializer() throw();
-
-	bool IsAvailable() const
-	{
-		return !!MyCpu;
-	}
-
-	CpuType* GetPtr() { return MyCpu.GetPtr(); }
-	const CpuType* GetPtr() const { return MyCpu.GetPtr(); }
-
-	operator CpuType*() { return GetPtr(); }
-	operator const CpuType*() const { return GetPtr(); }
-};
-
-// --------------------------------------------------------------------------------------
-//  CpuInitializer Template
-// --------------------------------------------------------------------------------------
-// Helper for initializing various PCSX2 CPU providers, and handing errors and cleanup.
-//
-template< typename CpuType >
-CpuInitializer< CpuType >::CpuInitializer()
-{
-	try {
-		MyCpu = new CpuType();
-		MyCpu->Reserve();
-	}
-	catch( Exception::RuntimeError& ex )
-	{
-		Console.Error( L"CPU provider error:\n\t" + ex.FormatDiagnosticMessage() );
-		MyCpu = NULL;
-		ExThrown = ex.Clone();
-	}
-	catch( std::runtime_error& ex )
-	{
-		Console.Error( L"CPU provider error (STL Exception)\n\tDetails:" + fromUTF8( ex.what() ) );
-		MyCpu = NULL;
-		ExThrown = new Exception::RuntimeError(ex);
-	}
-}
-
-template< typename CpuType >
-CpuInitializer< CpuType >::~CpuInitializer() throw()
-{
-	if (MyCpu)
-		MyCpu->Shutdown();
-}
-
-// --------------------------------------------------------------------------------------
-//  CpuInitializerSet
-// --------------------------------------------------------------------------------------
-class CpuInitializerSet
-{
-public:
-	// Note: Allocate sVU first -- it's the most picky.
-
-	CpuInitializer<recSuperVU0>		superVU0;
-	CpuInitializer<recSuperVU1>		superVU1;
-
-	CpuInitializer<recMicroVU0>		microVU0;
-	CpuInitializer<recMicroVU1>		microVU1;
-
-	CpuInitializer<InterpVU0>		interpVU0;
-	CpuInitializer<InterpVU1>		interpVU1;
-
-public:
-	CpuInitializerSet() {}
-	virtual ~CpuInitializerSet() throw() {}
-};
-
-
 // returns the translated error message for the Virtual Machine failing to allocate!
 static wxString GetMemoryErrorVM()
 {
@@ -449,7 +363,7 @@ SysCpuProviderPack::SysCpuProviderPack()
 	Console.WriteLn( Color_StrongBlue, "Reserving memory for recompilers..." );
 	ConsoleIndentScope indent(1);
 
-	CpuProviders = new CpuInitializerSet();
+	VUInterface::Initialize();
 
 	try {
 		recCpu.Reserve();
@@ -480,24 +394,13 @@ SysCpuProviderPack::SysCpuProviderPack()
 	}
 }
 
-bool SysCpuProviderPack::IsRecAvailable_MicroVU0() const { return CpuProviders->microVU0.IsAvailable(); }
-bool SysCpuProviderPack::IsRecAvailable_MicroVU1() const { return CpuProviders->microVU1.IsAvailable(); }
-BaseException* SysCpuProviderPack::GetException_MicroVU0() const { return CpuProviders->microVU0.ExThrown; }
-BaseException* SysCpuProviderPack::GetException_MicroVU1() const { return CpuProviders->microVU1.ExThrown; }
-
-bool SysCpuProviderPack::IsRecAvailable_SuperVU0() const { return CpuProviders->superVU0.IsAvailable(); }
-bool SysCpuProviderPack::IsRecAvailable_SuperVU1() const { return CpuProviders->superVU1.IsAvailable(); }
-BaseException* SysCpuProviderPack::GetException_SuperVU0() const { return CpuProviders->superVU0.ExThrown; }
-BaseException* SysCpuProviderPack::GetException_SuperVU1() const { return CpuProviders->superVU1.ExThrown; }
-
-
 void SysCpuProviderPack::CleanupMess() throw()
 {
 	try
 	{
 		psxRec.Shutdown();
 		recCpu.Shutdown();
-
+	
 		if (newVifDynaRec)
 		{
 			dVifRelease(0);
@@ -516,39 +419,15 @@ bool SysCpuProviderPack::HadSomeFailures( const Pcsx2Config::RecompilerOptions& 
 {
 	return	(recOpts.EnableEE && !IsRecAvailable_EE()) ||
 			(recOpts.EnableIOP && !IsRecAvailable_IOP()) ||
-			(recOpts.EnableVU0 && recOpts.UseMicroVU0 && !IsRecAvailable_MicroVU0()) ||
-			(recOpts.EnableVU1 && recOpts.UseMicroVU0 && !IsRecAvailable_MicroVU1()) ||
-			(recOpts.EnableVU0 && !recOpts.UseMicroVU0 && !IsRecAvailable_SuperVU0()) ||
-			(recOpts.EnableVU1 && !recOpts.UseMicroVU1 && !IsRecAvailable_SuperVU1());
-
+			VUInterface::HadSomeFailures(recOpts);
 }
-
-BaseVUmicroCPU* CpuVU0 = NULL;
-BaseVUmicroCPU* CpuVU1 = NULL;
 
 void SysCpuProviderPack::ApplyConfig() const
 {
 	Cpu		= CHECK_EEREC	? &recCpu : &intCpu;
 	psxCpu	= CHECK_IOPREC	? &psxRec : &psxInt;
 
-	CpuVU0 = CpuProviders->interpVU0;
-	CpuVU1 = CpuProviders->interpVU1;
-
-	if( EmuConfig.Cpu.Recompiler.EnableVU0 )
-		CpuVU0 = EmuConfig.Cpu.Recompiler.UseMicroVU0 ? (BaseVUmicroCPU*)CpuProviders->microVU0 : (BaseVUmicroCPU*)CpuProviders->superVU0;
-
-	if( EmuConfig.Cpu.Recompiler.EnableVU1 )
-		CpuVU1 = EmuConfig.Cpu.Recompiler.UseMicroVU1 ? (BaseVUmicroCPU*)CpuProviders->microVU1 : (BaseVUmicroCPU*)CpuProviders->superVU1;
-}
-
-// This is a semi-hacky function for convenience
-BaseVUmicroCPU* SysCpuProviderPack::getVUprovider(int whichProvider, int vuIndex) const {
-	switch (whichProvider) {
-		case 0: return vuIndex ? (BaseVUmicroCPU*)CpuProviders->interpVU1 : (BaseVUmicroCPU*)CpuProviders->interpVU0;
-		case 1: return vuIndex ? (BaseVUmicroCPU*)CpuProviders->superVU1  : (BaseVUmicroCPU*)CpuProviders->superVU0;
-		case 2: return vuIndex ? (BaseVUmicroCPU*)CpuProviders->microVU1  : (BaseVUmicroCPU*)CpuProviders->microVU0;
-	}
-	return NULL;
+	VUInterface::ApplyConfig();
 }
 
 // Resets all PS2 cpu execution caches, which does not affect that actual PS2 state/condition.
@@ -565,10 +444,10 @@ void SysClearExecutionCache()
 
 	// mVU's VU0 needs to be properly initialized for macro mode even if it's not used for micro mode!
 	if (CHECK_EEREC)
-		((BaseVUmicroCPU*)GetCpuProviders().CpuProviders->microVU0)->Reset();
+		VUInterface::GetVUProvider(VUInterface::PROVIDER_MICROVU, VUInterface::VUCORE_0)->Reset();
 
-	CpuVU0->Reset();
-	CpuVU1->Reset();
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_0)->Reset();
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Reset();
 
 	if (newVifDynaRec)
 	{

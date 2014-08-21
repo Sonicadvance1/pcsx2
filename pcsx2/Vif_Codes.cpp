@@ -21,6 +21,7 @@
 #include "newVif.h"
 #include "VUmicro.h"
 #include "MTVU.h"
+#include "VU/VUInterface.h"
 
 #define vifOp(vifCodeName) _vifT int __fastcall vifCodeName(int pass, const u32 *data)
 #define pass1    if (pass == 0)
@@ -293,8 +294,7 @@ static __fi void _vifCode_MPG(int idx, u32 addr, const u32 *data, int size) {
 	if((addr + size *4) > (idx ? 0x4000U : 0x1000U))
 	{
 		//DevCon.Warning("Handling split MPG");
-		if (!idx)  CpuVU0->Clear(addr, (idx ? 0x4000 : 0x1000) - addr);
-		else	   CpuVU1->Clear(addr, (idx ? 0x4000 : 0x1000) - addr);
+		VUInterface::GetCurrentProvider(idx)->Clear(addr, (idx ? 0x4000 : 0x1000) - addr);
 		
 		memcpy_fast(VUx.Micro + addr, data, (idx ? 0x4000 : 0x1000) - addr);
 		size -= ((idx ? 0x4000 : 0x1000) - addr) / 4;
@@ -308,8 +308,7 @@ static __fi void _vifCode_MPG(int idx, u32 addr, const u32 *data, int size) {
 	//Faster without.
 	//if (memcmp_mmx(VUx.Micro + addr, data, size*4)) {
 		// Clear VU memory before writing!
-		if (!idx)  CpuVU0->Clear(addr, size*4);
-		else	   CpuVU1->Clear(addr, size*4);
+		VUInterface::GetCurrentProvider(idx)->Clear(addr, size * 4);
 		memcpy_fast(VUx.Micro + addr, data, size*4); //from tests, memcpy is 1fps faster on Grandia 3 than memcpy_fast
 
 		vifX.tag.addr   +=   size * 4;

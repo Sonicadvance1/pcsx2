@@ -22,6 +22,7 @@
 #include <cmath>
 #include "VUmicro.h"
 #include "MTVU.h"
+#include "VU/VUInterface.h"
 
 #ifdef PCSX2_DEBUG
 u32 vudump = 0;
@@ -44,7 +45,7 @@ void vu1Finish() {
 	}
 	while (VU0.VI[REG_VPU_STAT].UL & 0x100) {
 		VUM_LOG("vu1ExecMicro > Stalling until current microprogram finishes");
-		CpuVU1->Execute(vu1RunCycles);
+		VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Execute(vu1RunCycles);
 	}
 }
 
@@ -66,5 +67,5 @@ void __fastcall vu1ExecMicro(u32 addr)
 	if ((s32)addr != -1) VU1.VI[REG_TPC].UL = addr;
 	_vuExecMicroDebug(VU1);
 
-	CpuVU1->Execute(vu1RunCycles);
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Execute(vu1RunCycles);
 }

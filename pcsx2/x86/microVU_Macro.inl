@@ -14,6 +14,7 @@
  */
 
 #pragma once
+#include "VU/VUInterface.h"
 
 extern void _vu0WaitMicro();
 extern void _vu0FinishMicro();
@@ -336,7 +337,7 @@ static void recCTC2() {
 			// Executing vu0 block here fixes the intro of Ratchet and Clank
 			// sVU's COP2 has a comment that "Donald Duck" needs this too...
 			if (_Rd_) _eeMoveGPRtoM((uptr)&vu0Regs.VI[_Rd_].UL, _Rt_);
-			xMOV(ecx, (uptr)CpuVU0);
+			xMOV(ecx, (uptr)VUInterface::GetCurrentProvider(VUInterface::VUCORE_0));
 			xCALL(BaseVUmicroCPU::ExecuteBlockJIT);
 			break;
 	}

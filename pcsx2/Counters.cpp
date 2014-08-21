@@ -25,7 +25,7 @@
 #include "IopCounters.h"
 
 #include "GS.h"
-#include "VUmicro.h"
+#include "VU/VUInterface.h"
 
 #include "ps2/HwInternal.h"
 
@@ -379,8 +379,8 @@ static __fi void VSyncStart(u32 sCycle)
 	// by UI implementations.  (ie, AppCoreThread in PCSX2-wx interface).
 	vSyncDebugStuff( g_FrameCount );
 
-	CpuVU0->Vsync();
-	CpuVU1->Vsync();
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_0)->Vsync();
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Vsync();
 
 	if (!CSRreg.VSINT)
 	{

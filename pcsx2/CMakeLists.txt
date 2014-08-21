@@ -167,7 +167,9 @@ set(pcsx2Sources
 	VU1microInterp.cpp
 	VUflags.cpp
 	VUmicroMem.cpp
-	VUops.cpp)
+	VUops.cpp
+	VU/VUInterface.cpp
+	)
 
 # Main pcsx2 header
 set(pcsx2Headers
@@ -221,7 +223,9 @@ set(pcsx2Headers
 	vtlb.h
 	VUflags.h
 	VUmicro.h
-	VUops.h)
+	VUops.h
+	VU/VUInterface.h
+	)
 
 # CDVD sources
 set(pcsx2CDVDSources
@@ -551,10 +555,6 @@ set(pcsx2x86Sources
 	x86/newVif_Dynarec.cpp
 	x86/newVif_Unpack.cpp
 	x86/newVif_UnpackSSE.cpp
-	x86/sVU_Lower.cpp
-	x86/sVU_Micro.cpp
-	x86/sVU_Upper.cpp
-	x86/sVU_zerorec.cpp
 	)
 
 # x86 headers
@@ -594,10 +594,6 @@ set(pcsx2x86Headers
 	x86/newVif.h
 	x86/newVif_HashBucket.h
 	x86/newVif_UnpackSSE.h
-	x86/sVU_Compare.h
-	x86/sVU_Debug.h
-	x86/sVU_Micro.h
-	x86/sVU_zerorec.h
 	)
 
 # colect .asm files
@@ -605,10 +601,28 @@ set(pcsx2AsmFiles
 	IPU/yuv2rgb.asm
 	x86/ix86-32/aVif_proc-32.asm)
 
-# collect .S files
-set(pcsx2SSources
-	x86/aVUzerorec.S)
+if (NOT SUPERVU_DISABLED)
+	# x86 sources
+	set(pcsx2x86Sources
+	    ${pcsx2x86Sources}
+	    x86/sVU_Lower.cpp
+	    x86/sVU_Micro.cpp
+	    x86/sVU_Upper.cpp
+	    x86/sVU_zerorec.cpp)
 
+	# x86 headers
+	set(pcsx2x86Headers
+	    ${pcsx2x86Headers}
+	    x86/sVU_Compare.h
+	    x86/sVU_Debug.h
+	    x86/sVU_Micro.h
+	    x86/sVU_zerorec.h)
+
+	# collect .S files
+	set(pcsx2SSources
+	    x86/aVUzerorec.S)
+
+endif()
 # change language of .S-files to c++
 set_source_files_properties(${pcsx2SSources} PROPERTIES LANGUAGE CXX)
 

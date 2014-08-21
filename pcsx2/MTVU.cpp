@@ -18,8 +18,9 @@
 #include "MTVU.h"
 #include "newVif.h"
 #include "Gif_Unit.h"
+#include "VU/VUInterface.h"
 
-__aligned16 VU_Thread vu1Thread(CpuVU1, VU1);
+__aligned16 VU_Thread vu1Thread(VU1);
 
 #define volatize(x) (*reinterpret_cast<volatile uint*>(&(x)))
 #define size_u32(x) (((u32)x+3u)>>2) // Rounds up a size in bytes for size in u32's
@@ -55,8 +56,8 @@ void SaveStateBase::mtvuFreeze()
 	Freeze(vu1Thread.vuCycleIdx);
 }
 
-VU_Thread::VU_Thread(BaseVUmicroCPU*& _vuCPU, VURegs& _vuRegs) :
-		vuCPU(_vuCPU), vuRegs(_vuRegs)
+VU_Thread::VU_Thread(VURegs& _vuRegs) :
+		vuRegs(_vuRegs)
 {
 	m_name = L"MTVU";
 	Reset();
@@ -100,7 +101,7 @@ void VU_Thread::ExecuteRingBuffer()
 					vifRegs.top  = Read();
 					vifRegs.itop = Read();
 					if (addr != -1) vuRegs.VI[REG_TPC].UL = addr;
-					vuCPU->Execute(vu1RunCycles);
+					VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Execute(vu1RunCycles);
 					gifUnit.gifPath[GIF_PATH_1].FinishGSPacketMTVU();
 					semaXGkick.Post(); // Tell MTGS a path1 packet is complete
 					AtomicExchange(vuCycles[vuCycleIdx], vuRegs.cycle);
@@ -110,7 +111,7 @@ void VU_Thread::ExecuteRingBuffer()
 				case MTVU_VU_WRITE_MICRO: {
 					u32 vu_micro_addr = Read();
 					u32 size = Read();
-					vuCPU->Clear(vu_micro_addr, size);
+					VUInterface::GetCurrentProvider(VUInterface::VUCORE_1)->Clear(vu_micro_addr, size);
 					Read(&vuRegs.Micro[vu_micro_addr], size);
 					break;
 				}

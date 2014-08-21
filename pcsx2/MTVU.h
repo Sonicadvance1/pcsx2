@@ -36,7 +36,6 @@ class VU_Thread : public pxThread {
 	__aligned(4) s32  write_offset; // Only modified by EE thread
 	__aligned(4) Mutex     mtxBusy;
 	__aligned(4) Semaphore semaEvent;
-	__aligned(4) BaseVUmicroCPU*& vuCPU;
 	__aligned(4) VURegs&          vuRegs;
 
 public:
@@ -46,7 +45,7 @@ public:
 	__aligned(4) u32 vuCycles[4]; // Used for VU cycle stealing hack
 	__aligned(4) u32 vuCycleIdx;  // Used for VU cycle stealing hack
 
-	VU_Thread(BaseVUmicroCPU*& _vuCPU, VURegs& _vuRegs);
+	VU_Thread(VURegs& _vuRegs);
 	virtual ~VU_Thread() throw();
 
 	void Reset();

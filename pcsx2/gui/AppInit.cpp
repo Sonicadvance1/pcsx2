@@ -24,6 +24,7 @@
 #include "Dialogs/ModalPopups.h"
 
 #include "Debugger/DisassemblyDialog.h"
+#include "VU/VUInterface.h"
 
 #include <wx/cmdline.h>
 #include <wx/intl.h>
@@ -154,41 +155,41 @@ void Pcsx2App::AllocateCoreStuffs()
 			if( BaseException* ex = m_CpuProviders->GetException_EE() )
 			{
 				scrollableTextArea->AppendText( L"* R5900 (EE)\n\t" + ex->FormatDisplayMessage() + L"\n\n" );
-				recOps.EnableEE		= false;
+				recOps.EnableEE = false;
 			}
 
 			if( BaseException* ex = m_CpuProviders->GetException_IOP() )
 			{
 				scrollableTextArea->AppendText( L"* R3000A (IOP)\n\t"  + ex->FormatDisplayMessage() + L"\n\n" );
-				recOps.EnableIOP	= false;
+				recOps.EnableIOP = false;
 			}
 
-			if( BaseException* ex = m_CpuProviders->GetException_MicroVU0() )
+			if( BaseException* ex = VUInterface::GetException(VUInterface::PROVIDER_MICROVU, VUInterface::VUCORE_0) )
 			{
 				scrollableTextArea->AppendText( L"* microVU0\n\t" + ex->FormatDisplayMessage() + L"\n\n" );
-				recOps.UseMicroVU0	= false;
-				recOps.EnableVU0	= recOps.EnableVU0 && m_CpuProviders->IsRecAvailable_SuperVU0();
+				recOps.UseMicroVU0 = false;
+				recOps.EnableVU0   = recOps.EnableVU0 && VUInterface::IsProviderAvailable(VUInterface::PROVIDER_SUPERVU, VUInterface::VUCORE_0);
 			}
 
-			if( BaseException* ex = m_CpuProviders->GetException_MicroVU1() )
+			if( BaseException* ex = VUInterface::GetException(VUInterface::PROVIDER_MICROVU, VUInterface::VUCORE_1) )
 			{
 				scrollableTextArea->AppendText( L"* microVU1\n\t" + ex->FormatDisplayMessage() + L"\n\n" );
-				recOps.UseMicroVU1	= false;
-				recOps.EnableVU1	= recOps.EnableVU1 && m_CpuProviders->IsRecAvailable_SuperVU1();
+				recOps.UseMicroVU1 = false;
+				recOps.EnableVU1   = recOps.EnableVU1 && VUInterface::IsProviderAvailable(VUInterface::PROVIDER_SUPERVU, VUInterface::VUCORE_1);
 			}
 
-			if( BaseException* ex = m_CpuProviders->GetException_SuperVU0() )
+			if( BaseException* ex = VUInterface::GetException(VUInterface::PROVIDER_SUPERVU, VUInterface::VUCORE_0) )
 			{
 				scrollableTextArea->AppendText( L"* SuperVU0\n\t" + ex->FormatDisplayMessage() + L"\n\n" );
-				recOps.UseMicroVU0	= m_CpuProviders->IsRecAvailable_MicroVU0();
-				recOps.EnableVU0	= recOps.EnableVU0 && recOps.UseMicroVU0;
+				recOps.UseMicroVU0 = VUInterface::IsProviderAvailable(VUInterface::PROVIDER_MICROVU, VUInterface::VUCORE_0);
+				recOps.EnableVU0   = recOps.EnableVU0 && recOps.UseMicroVU0;
 			}
 
-			if( BaseException* ex = m_CpuProviders->GetException_SuperVU1() )
+			if( BaseException* ex = VUInterface::GetException(VUInterface::PROVIDER_SUPERVU, VUInterface::VUCORE_1) )
 			{
 				scrollableTextArea->AppendText( L"* SuperVU1\n\t" + ex->FormatDisplayMessage() + L"\n\n" );
-				recOps.UseMicroVU1	= m_CpuProviders->IsRecAvailable_MicroVU1();
-				recOps.EnableVU1	= recOps.EnableVU1 && recOps.UseMicroVU1;
+				recOps.UseMicroVU1 = VUInterface::IsProviderAvailable(VUInterface::PROVIDER_MICROVU, VUInterface::VUCORE_1);
+				recOps.EnableVU1   = recOps.EnableVU1 && recOps.UseMicroVU1;
 			}
 
 			exconf += exconf.Heading( pxE( L"Note: Recompilers are not necessary for PCSX2 to run, however they typically improve emulation speed substantially. You may have to manually re-enable the recompilers listed above, if you resolve the errors." )

@@ -19,9 +19,9 @@
 
 #include "R5900.h"
 #include "R3000A.h"
-#include "VUmicro.h"
 #include "COP0.h"
 #include "MTVU.h"
+#include "VU/VUInterface.h"
 
 #include "System/SysThreads.h"
 #include "R5900Exceptions.h"
@@ -428,7 +428,7 @@ __fi void _cpuEventTest_Shared()
 	// ---- VU0 -------------
 	// We're in a EventTest.  All dynarec registers are flushed
 	// so there is no need to freeze registers here.
-	CpuVU0->ExecuteBlock();
+	VUInterface::GetCurrentProvider(VUInterface::VUCORE_0)->ExecuteBlock();
 
 	// Note:  We don't update the VU1 here because it runs it's micro-programs in
 	// one shot always.  That is, when a program is executed the VU1 doesn't even
